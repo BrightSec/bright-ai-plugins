@@ -24,10 +24,22 @@ verify it from the code, recording per operation:
   `QueryParam(...)`, `request.args`, `req.query`, header getters) and bind/DTO tags — not a set
   copied from a neighbouring route
 - the handler identity (file plus function, or RPC name) for Step 3
+- the operation's own tests, when the repository has them — they exercise the exact request the
+  handler expects (required headers and their values, protocol or version strings, body shape),
+  including requirements the handler delegates to a framework or library and so does not spell
+  out in its own code. Read them to pin values the handler alone does not reveal
 - if the app serves a built frontend: the JavaScript the served `index.html` references (`curl`
   the `baseUrl`), its service worker, and the chunks they load, or the build output directory
   (e.g. `dist/`). Frontend source with no bundle in the served `index.html` is a JavaScript
   coverage gap: the frontend was not built or served
+
+A single URL that fronts a protocol transport is a surface, not one operation: enumerate the
+operations it exposes and register each. An MCP endpoint (e.g. `POST /mcp`) is the clearest case
+— register the handshake (`initialize`), the catalogue call (`tools/list`), and one tool
+invocation (`tools/call`) per tool the server exposes, with that tool's arguments taken from its
+input schema. The same applies to any transport that multiplexes many operations behind one path
+(a JSON-RPC or batch endpoint). The server's own code or tests list the operations; the single
+handshake request the transport rejects is not the surface.
 
 A shipped API definition (OpenAPI/Swagger) is input for this inventory and for `compose-har`
 entries: paths, parameters, schemas. Values still come from Step 2; its `example` values are not
@@ -40,7 +52,13 @@ That list is the only input to Step 6.
 ### Step 2: Craft functional parameter values
 
 Every path, query, body, and header value must pass validation and seed mutation well. Build
-each request from a concrete URL on `baseUrl`, deriving every value from the code:
+each request from a concrete URL on `baseUrl`, deriving every value from the code.
+
+Bind the body to **this operation's own request message or DTO**, read from its handler. Do not
+reuse the body of a sibling route that shares a resource noun: two operations on related URLs
+(e.g. a create on a collection and a different RPC on the same resource) are usually distinct
+messages with distinct required fields. When a 400 names a field or a `oneof` the body is
+missing, that field is the one to supply — not a signal to drop the operation.
 
 - **Enums and constants** — the exact member and casing (`OAUTH2`, not `oauth2`); a real key from
   an enumerated set, not `"test"`.
@@ -49,7 +67,10 @@ each request from a concrete URL on `baseUrl`, deriving every value from the cod
 - **Framework conventions** — e.g. gRPC-gateway Update RPCs need an `update_mask` listing the
   fields being set.
 - **Types and validation** — the declared type, format hints (email, UUID, date-time, URI),
-  patterns, length bounds, every required DTO field, nested object and array shapes.
+  patterns, length bounds, every required DTO field, nested object and array shapes. Encode each
+  field as the type the message declares: a field that is itself a nested message or object is
+  sent as an object with that message's fields, even when its only field is a name or id — not as
+  the bare string of that value. A field that is declared as a plain string stays a string.
 - **Seeds** — IDs, slugs, and foreign keys from the seeded data.
 - **Dependent objects** — read real IDs from the running app. Create a missing object first
   through the application's API (`curl` against `baseUrl` with the run's credentials), and a
@@ -83,6 +104,12 @@ whether one already covers the operation:
 - Different handlers, different method semantics on one path, or different resources stay
   distinct: `GET` and `POST` on a collection are two entrypoints, five filter variants of the
   `GET` are one.
+- Operations multiplexed behind one protocol-transport URL (Step 1) are distinct from each other
+  and from any REST route that reaches the same handler — the transport is its own attack surface
+  with its own parsing and dispatch. Do not merge them by shared outer body field names (a
+  JSON-RPC envelope makes every call look alike at the top level): the operation is the inner
+  method or tool name, so each transport method and each tool call is its own entrypoint, kept
+  even when a REST entrypoint already wraps the same underlying handler.
 - If one covers the operation, `editEntrypoint` it with the missing parameters or better values
   instead of adding another.
 
@@ -100,6 +127,15 @@ operation `analyze-codebase` retained, exclude one that revokes the current sess
 bearer token server-side (not one that only clears a cookie), deletes the auth user, exists to
 change their password or other credentials, or shuts the application down. Cite the handler for
 every exclusion.
+
+The test is loss of access, not whether a credential value changes. An operation that **issues or
+rotates a credential while leaving the caller authenticated** — a token refresh that mints a new
+access token from a still-valid refresh credential, a re-issue that returns the new value — keeps
+the session alive and is a valuable target, so register it; exclude only the operation that leaves
+the caller unable to authenticate (revoke, sign-out that invalidates server-side, delete the
+account). When such an operation is reached without the bearer because a public credential drives
+it (a cookie or refresh token from an earlier response, per `setup-auth`), register it on the
+public surface and send that credential.
 
 **Scan-risk.** An operation the active rule retains may still be turned against the run by a
 fuzzed request — global settings that could disable login or signup, or an update of the auth
