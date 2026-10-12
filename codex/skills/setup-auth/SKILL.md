@@ -14,8 +14,11 @@ and record per mechanism, citing file and line:
 - **guard** — what decides, including a handler or role check that differs from its middleware
 - **credential** — what it expects, for which principal
 - **obtained** — how the code issues it: login flow, key or token creation, exchange of another
-  credential, a secret seeded by config or set through another route group. Take test
-  credentials from seed data, fixtures, `.env.example`, or setup docs; never invent them
+  credential, a secret seeded by config or set through another route group. Capture **every**
+  credential a login response issues, not only the one the primary mechanism uses: a response
+  may return a token in its body and also set a cookie, header, or second token that a different
+  route group reads. Take test credentials from seed data, fixtures, `.env.example`, or setup
+  docs; never invent them
 - **sent** — where it travels, plus every other value the guard checks with it
 - **accepted / rejected** — what each path returns per the code: status, redirect target,
   headers, body. A rejection is not always a 4xx
