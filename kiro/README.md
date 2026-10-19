@@ -80,15 +80,18 @@ That's the whole install. The CLI copies the power into `~/.kiro/powers/installe
 `brightsec` MCP server travels with the power and connects automatically — you do **not** hand-edit
 any MCP config file, and you do **not** copy skills into `~/.kiro/skills/`.
 
-Verify, then use it:
+Verify it loaded: start a chat and confirm the power is wired up.
 
 ```bash
-kiro-cli powers uninstall bright-security   # remove the power (one command; see Uninstall below)
+kiro-cli chat
+# then, inside the session:
+/mcp              # shows the brightsec server status and its tools
+/                 # lists the ten skills as slash commands
 ```
 
-Inside a `kiro-cli chat` session, type `/` to see the ten skills as slash commands, or just ask for
-a workflow in plain language (see **Use**). The `brightsec` tools are available to the agent once
-the power is installed and the two environment variables are set.
+The `brightsec` tools are available to the agent once the power is installed and the two
+environment variables are set. You can also just ask for a workflow in plain language (see
+**Use**). To remove the power later, see **Uninstall**.
 
 > Catalog name: once Bright Security is accepted into Kiro's curated **Available Powers** registry,
 > `kiro-cli powers install bright-security` (by name, no clone) will also work. It is **not yet**
@@ -152,17 +155,24 @@ server connects. This is an intentional, Kiro-specific tradeoff, called out here
 
 ## Update / Uninstall
 
-- **CLI update:** `git pull` in the clone, then reinstall over the current copy —
-  `kiro-cli powers install ./bright-ai-plugins/kiro`.
+- **CLI update:** `git pull` in the clone, then reinstall over the current copy from the clone
+  root — `kiro-cli powers install ./kiro`.
 - **CLI uninstall:** `kiro-cli powers uninstall bright-security`. This removes the power from
   `~/.kiro/powers/installed/` and `installed.json`; the bundled MCP server goes with it, so there
   is no separate MCP config to clean up.
 - **IDE:** manage, update, or remove the power from the Powers panel; Kiro also manages the bundled
   MCP server's lifecycle for you.
-- **Troubleshooting:** confirm `echo $BRIGHT_HOSTNAME` and `echo $BRIGHT_TOKEN` are set before
-  launching Kiro. In a CLI chat, `/mcp` shows the `brightsec` connection status and its tools; an
-  auth failure shows up as a connection failure for that server (rotate the token and restart). If
-  only the Repeater fails, test the Bright CLI directly:
+- **Troubleshooting:** confirm both variables are set before launching Kiro — check that the token
+  is present **without printing it** (the same way `setup-repeater` does):
+
+  ```bash
+  test -n "$BRIGHT_TOKEN" && echo "BRIGHT_TOKEN: set" || echo "BRIGHT_TOKEN: MISSING"
+  test -n "$BRIGHT_HOSTNAME" && echo "BRIGHT_HOSTNAME: $BRIGHT_HOSTNAME" || echo "BRIGHT_HOSTNAME: MISSING"
+  ```
+
+  In a CLI chat, `/mcp` shows the `brightsec` connection status and its tools; an auth failure
+  shows up as a connection failure for that server (rotate the token and restart). If only the
+  Repeater fails, test the Bright CLI directly:
 
   ```bash
   npx @brightsec/cli repeater --id <REPEATER_ID> --hostname "$BRIGHT_HOSTNAME" --token "$BRIGHT_TOKEN"
