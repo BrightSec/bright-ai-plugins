@@ -115,8 +115,24 @@ and the MCP server — at the user level yourself. Kiro auto-discovers both from
    `~/.kiro/skills/<name>/SKILL.md` is the global location; `.kiro/skills/<name>/SKILL.md` is the
    per-workspace equivalent, and the workspace copy wins on a name conflict. If the preflight
    reports a conflict, prefer installing into a **project** `.kiro/skills/` (which does not touch
-   your global skills) or symlink only the non-conflicting directories. Either way, note the ten
-   directory names this step creates — uninstall removes exactly those and nothing else.
+   your global skills). You can also install only the non-conflicting directories as **symlinks**
+   into this clone, leaving the conflicting name untouched — do it this way (not `cp`) so uninstall
+   can tell this power's entries apart from a same-named skill you own and remove only the former:
+
+   ```bash
+   # Selective fallback: symlink only the names you don't already have, pointing into this clone.
+   clone="$PWD"                                   # the bright-ai-plugins clone (kiro/skills lives here)
+   for d in kiro/skills/*/; do
+     name=$(basename "$d")
+     if [ -e "$HOME/.kiro/skills/$name" ]; then
+       echo "Leaving your existing ~/.kiro/skills/$name untouched"
+     else
+       ln -s "$clone/kiro/skills/$name" "$HOME/.kiro/skills/$name"
+     fi
+   done
+   ```
+
+   Keep this clone in place so the symlinks stay valid (and `git pull` updates the skills live).
 3. **MCP server** — add the `brightsec` server to the user-level Kiro MCP config
    `~/.kiro/settings/mcp.json` (per-workspace equivalent `.kiro/settings/mcp.json`; workspace
    wins). Use Kiro's **native** MCP shape — Kiro expands `${BRIGHT_HOSTNAME}` / `${BRIGHT_TOKEN}`
@@ -196,16 +212,32 @@ intentional, Kiro-specific tradeoff, called out here rather than hidden.
   previous versions (`cp -R kiro/skills/* ~/.kiro/skills/` is safe here — those ten names are the
   power's own, already installed), or rely on symlinks for live updates. The MCP config is a
   one-time edit.
-- **CLI uninstall:** remove **only** the ten skill directories this power installed, then delete the
-  `brightsec` entry from `~/.kiro/settings/mcp.json`. Drive the removal from the repo's own skill
-  list so you never delete a same-named skill you created yourself — if the preflight above reported
-  a conflict for a name, that directory was yours and the install never overwrote it, so leave it:
+- **CLI uninstall:** remove **only** the entries this power installed, then delete the `brightsec`
+  entry from `~/.kiro/settings/mcp.json`. If the preflight above reported a conflict for a name,
+  that directory is yours — the install either refused to copy or left it untouched in the symlink
+  fallback — so uninstall must leave it. Drive the loop so it removes a name only when it is a
+  symlink resolving into this clone's `kiro/skills/` tree (the selective fallback), and otherwise
+  only after confirming the directory is this power's, not a same-named skill you own:
 
   ```bash
   cd bright-ai-plugins   # the clone whose kiro/skills defines the ten names
+  clone="$PWD"
   for d in kiro/skills/*/; do
     name=$(basename "$d")
-    rm -rf "$HOME/.kiro/skills/$name"
+    target="$HOME/.kiro/skills/$name"
+    [ -e "$target" ] || [ -L "$target" ] || continue
+    if [ -L "$target" ]; then
+      # Symlink: remove only if it points into THIS clone's kiro/skills (installed by the fallback).
+      if [ "$(readlink "$target")" = "$clone/kiro/skills/$name" ]; then
+        rm "$target"
+      else
+        echo "Leaving ~/.kiro/skills/$name — not a symlink into this clone"
+      fi
+    else
+      # Real directory from the collision-safe copy: the preflight guaranteed none pre-existed,
+      # so all copied names are this power's. If you reused the name later, remove it by hand instead.
+      rm -rf "$target"
+    fi
   done
   ```
 
