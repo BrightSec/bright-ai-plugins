@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "brightsec": {
+      "type": "streamable-http",
+      "url": "https://${BRIGHT_HOSTNAME}/mcp",
+      "headers": {
+        "Authorization": "Api-Key ${BRIGHT_TOKEN}"
+      }
+    }
+  }
+}
