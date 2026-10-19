@@ -85,17 +85,38 @@ The Kiro CLI does not auto-manage a power's bundled MCP server, so wire the two 
 and the MCP server — at the user level yourself. Kiro auto-discovers both from `~/.kiro`.
 
 1. **Export `BRIGHT_HOSTNAME` and `BRIGHT_TOKEN`.**
-2. **Skills** — copy (or symlink) the ten skill directories into the user-level Kiro skills
-   directory, which Kiro auto-discovers:
+2. **Skills** — install the ten skill directories into the user-level Kiro skills directory, which
+   Kiro auto-discovers. `~/.kiro/skills/` is a **flat, shared namespace**: some of this power's
+   names (`setup-auth`, `run-scan`, `analyze-codebase`, …) are generic, so a blind
+   `cp -R .../kiro/skills/* ~/.kiro/skills/` could overwrite a skill you already have there. Do
+   **not** do that. Install collision-safe instead — check every destination first and stop if any
+   already exists, rather than merging on top of it:
 
    ```bash
    git clone https://github.com/NeuraLegion/bright-ai-plugins
+   cd bright-ai-plugins
    mkdir -p ~/.kiro/skills
-   cp -R bright-ai-plugins/kiro/skills/* ~/.kiro/skills/   # or symlink each dir for live updates
+
+   # Preflight: abort if any of the ten names is already taken, so we never clobber a skill you own.
+   conflicts=""
+   for d in kiro/skills/*/; do
+     name=$(basename "$d")
+     [ -e "$HOME/.kiro/skills/$name" ] && conflicts="$conflicts $name"
+   done
+   if [ -n "$conflicts" ]; then
+     echo "Refusing to install — these already exist in ~/.kiro/skills:$conflicts" >&2
+     echo "Rename/remove them (or install into a workspace .kiro/skills instead), then re-run." >&2
+   else
+     cp -R kiro/skills/* ~/.kiro/skills/        # only the ten Bright dirs, none pre-existing
+     echo "Installed:$(for d in kiro/skills/*/; do printf ' %s' "$(basename "$d")"; done)"
+   fi
    ```
 
    `~/.kiro/skills/<name>/SKILL.md` is the global location; `.kiro/skills/<name>/SKILL.md` is the
-   per-workspace equivalent, and the workspace copy wins on a name conflict.
+   per-workspace equivalent, and the workspace copy wins on a name conflict. If the preflight
+   reports a conflict, prefer installing into a **project** `.kiro/skills/` (which does not touch
+   your global skills) or symlink only the non-conflicting directories. Either way, note the ten
+   directory names this step creates — uninstall removes exactly those and nothing else.
 3. **MCP server** — add the `brightsec` server to the user-level Kiro MCP config
    `~/.kiro/settings/mcp.json` (per-workspace equivalent `.kiro/settings/mcp.json`; workspace
    wins). Use Kiro's **native** MCP shape — Kiro expands `${BRIGHT_HOSTNAME}` / `${BRIGHT_TOKEN}`
@@ -171,10 +192,26 @@ intentional, Kiro-specific tradeoff, called out here rather than hidden.
 
 - **IDE:** manage or remove the power from the Powers panel; Kiro also manages the bundled MCP
   server's lifecycle for you.
-- **CLI update:** `git pull` the repo and re-copy the skill directories (or rely on symlinks for
-  live updates). The MCP config is a one-time edit.
-- **CLI uninstall:** remove the ten `~/.kiro/skills/*` directories you copied and delete the
-  `brightsec` entry from `~/.kiro/settings/mcp.json`.
+- **CLI update:** `git pull` the repo, then re-copy the ten Bright skill directories over their
+  previous versions (`cp -R kiro/skills/* ~/.kiro/skills/` is safe here — those ten names are the
+  power's own, already installed), or rely on symlinks for live updates. The MCP config is a
+  one-time edit.
+- **CLI uninstall:** remove **only** the ten skill directories this power installed, then delete the
+  `brightsec` entry from `~/.kiro/settings/mcp.json`. Drive the removal from the repo's own skill
+  list so you never delete a same-named skill you created yourself — if the preflight above reported
+  a conflict for a name, that directory was yours and the install never overwrote it, so leave it:
+
+  ```bash
+  cd bright-ai-plugins   # the clone whose kiro/skills defines the ten names
+  for d in kiro/skills/*/; do
+    name=$(basename "$d")
+    rm -rf "$HOME/.kiro/skills/$name"
+  done
+  ```
+
+  Then remove the `brightsec` key from the `mcpServers` object in `~/.kiro/settings/mcp.json`
+  (leave any other servers in place). If you installed into a workspace `.kiro/skills/` instead,
+  run the loop against that directory.
 - **Troubleshooting:** confirm `echo $BRIGHT_HOSTNAME` and `echo $BRIGHT_TOKEN` are set before
   launching; `/mcp` shows the connection status; an auth failure shows up as a connection failure
   for that server (rotate the token and restart). If only the Repeater fails, test the Bright CLI
