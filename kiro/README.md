@@ -49,120 +49,67 @@ export BRIGHT_TOKEN="your-bright-api-token"  # your Bright API token
 Export these in the environment Kiro launches from — the MCP server reads them when it connects,
 so set them before launching, not mid-session. For a long-lived org-wide token, prefer a secret
 manager (OS keychain, 1Password, `pass`, or a cloud secrets manager) over a plaintext value in a
-shell startup file or a synchronized dotfile; if you do put it in `~/.zshrc` / `~/.bashrc`, keep
-that file off shared machines and out of version control. A **project-scoped** token limits the
-blast radius if it leaks.
+shell startup file or a synchronized dotfile. A **project-scoped** token limits the blast radius if
+it leaks.
 
 ---
 
 ## Install
 
-The repository is only the **source** of the power. You install it at the user/system level and
-it is then available across your workspaces. There are two surfaces — the Kiro IDE and the Kiro
-CLI — and they wire the power differently.
+The repository is only the **source** of the power. Installing it copies the power into Kiro's own
+storage, so it is available regardless of where this repo lives — you don't run it "from" the repo.
+There are two surfaces, the Kiro IDE and the Kiro CLI, and each installs the power its own way.
 
-### A) Kiro IDE (Powers panel)
+Before installing on either surface, export `BRIGHT_HOSTNAME` and `BRIGHT_TOKEN` in the environment
+Kiro launches from — Kiro expands these references when the bundled MCP server connects.
 
-1. **Export `BRIGHT_HOSTNAME` and `BRIGHT_TOKEN`** in the environment Kiro launches from.
-2. **Install the power** from the **Powers** panel. Point it at this repository's `kiro/` folder —
-   either a local clone's `kiro/` directory, or the GitHub repository
-   (`https://github.com/NeuraLegion/bright-ai-plugins`, selecting the `kiro/` subdirectory where
-   your Kiro build supports choosing a subdirectory power). The power installs at the user/system
-   level, so it is available across workspaces.
-3. On install, when a power carries an MCP server, **Kiro stores and manages that server for you**
-   and namespaces its name to avoid conflicts with other powers. After install, confirm the Bright
+### A) Kiro CLI (`kiro-cli powers install`)
+
+The CLI installs a power with one command. Its argument is a **catalog name** or a **local
+filesystem path** — a GitHub URL is **not** accepted, so install from a clone of this repo and
+point at the `kiro/` subdirectory:
+
+```bash
+git clone https://github.com/NeuraLegion/bright-ai-plugins
+kiro-cli powers install ./bright-ai-plugins/kiro
+# → Installed power "bright-security"
+```
+
+That's the whole install. The CLI copies the power into `~/.kiro/powers/installed/bright-security/`
+(all ten skills plus `mcp.json`) and records it in `~/.kiro/powers/installed.json`. The bundled
+`brightsec` MCP server travels with the power and connects automatically — you do **not** hand-edit
+any MCP config file, and you do **not** copy skills into `~/.kiro/skills/`.
+
+Verify, then use it:
+
+```bash
+kiro-cli powers uninstall bright-security   # remove the power (one command; see Uninstall below)
+```
+
+Inside a `kiro-cli chat` session, type `/` to see the ten skills as slash commands, or just ask for
+a workflow in plain language (see **Use**). The `brightsec` tools are available to the agent once
+the power is installed and the two environment variables are set.
+
+> Catalog name: once Bright Security is accepted into Kiro's curated **Available Powers** registry,
+> `kiro-cli powers install bright-security` (by name, no clone) will also work. It is **not yet**
+> in the registry — install from a local clone for now.
+
+### B) Kiro IDE (Powers panel)
+
+1. Open the **Powers** panel.
+2. Add the power from either source:
+   - **Local Path** — select this repository's `kiro/` folder from a clone. (Verified to work.)
+   - **GitHub** — import from the repository
+     (`https://github.com/NeuraLegion/bright-ai-plugins`), selecting the `kiro/` subdirectory on a
+     Kiro build that supports choosing a subdirectory power.
+3. When a power carries an MCP server, **Kiro stores and manages that server for you** and
+   namespaces its name to avoid conflicts with other powers. After install, confirm the Bright
    tools and the ten skills are available, and approve the server's use of your environment
    variables if Kiro prompts.
 
 Discovery note: kiro.dev hosts a curated **Available Powers** registry with a one-click "Add to
-Kiro" install. Bright Security is **not yet** published there, so install from this GitHub repo
-URL or a local folder for now (the repo can be submitted to the registry later via
-`kiro.dev/powers/submit`).
-
-### B) Kiro CLI (user/global level, all workspaces)
-
-The Kiro CLI does not auto-manage a power's bundled MCP server, so wire the two pieces — skills
-and the MCP server — at the user level yourself. Kiro auto-discovers both from `~/.kiro`.
-
-1. **Export `BRIGHT_HOSTNAME` and `BRIGHT_TOKEN`.**
-2. **Skills** — install the ten skill directories into the user-level Kiro skills directory, which
-   Kiro auto-discovers. `~/.kiro/skills/` is a **flat, shared namespace**: some of this power's
-   names (`setup-auth`, `run-scan`, `analyze-codebase`, …) are generic, so a blind
-   `cp -R .../kiro/skills/* ~/.kiro/skills/` could overwrite a skill you already have there. Do
-   **not** do that. Install collision-safe instead — check every destination first and stop if any
-   already exists, rather than merging on top of it:
-
-   ```bash
-   git clone https://github.com/NeuraLegion/bright-ai-plugins
-   cd bright-ai-plugins
-   mkdir -p ~/.kiro/skills
-
-   # Preflight: abort if any of the ten names is already taken, so we never clobber a skill you own.
-   conflicts=""
-   for d in kiro/skills/*/; do
-     name=$(basename "$d")
-     [ -e "$HOME/.kiro/skills/$name" ] && conflicts="$conflicts $name"
-   done
-   if [ -n "$conflicts" ]; then
-     echo "Refusing to install — these already exist in ~/.kiro/skills:$conflicts" >&2
-     echo "Rename/remove them (or install into a workspace .kiro/skills instead), then re-run." >&2
-   else
-     cp -R kiro/skills/* ~/.kiro/skills/        # only the ten Bright dirs, none pre-existing
-     echo "Installed:$(for d in kiro/skills/*/; do printf ' %s' "$(basename "$d")"; done)"
-   fi
-   ```
-
-   `~/.kiro/skills/<name>/SKILL.md` is the global location; `.kiro/skills/<name>/SKILL.md` is the
-   per-workspace equivalent, and the workspace copy wins on a name conflict. If the preflight
-   reports a conflict, prefer installing into a **project** `.kiro/skills/` (which does not touch
-   your global skills). You can also install only the non-conflicting directories as **symlinks**
-   into this clone, leaving the conflicting name untouched — do it this way (not `cp`) so uninstall
-   can tell this power's entries apart from a same-named skill you own and remove only the former:
-
-   ```bash
-   # Selective fallback: symlink only the names you don't already have, pointing into this clone.
-   clone="$PWD"                                   # the bright-ai-plugins clone (kiro/skills lives here)
-   for d in kiro/skills/*/; do
-     name=$(basename "$d")
-     if [ -e "$HOME/.kiro/skills/$name" ]; then
-       echo "Leaving your existing ~/.kiro/skills/$name untouched"
-     else
-       ln -s "$clone/kiro/skills/$name" "$HOME/.kiro/skills/$name"
-     fi
-   done
-   ```
-
-   Keep this clone in place so the symlinks stay valid (and `git pull` updates the skills live).
-3. **MCP server** — add the `brightsec` server to the user-level Kiro MCP config
-   `~/.kiro/settings/mcp.json` (per-workspace equivalent `.kiro/settings/mcp.json`; workspace
-   wins). Use Kiro's **native** MCP shape — Kiro expands `${BRIGHT_HOSTNAME}` / `${BRIGHT_TOKEN}`
-   from the environment here, so the same exported variables drive both the MCP server and the
-   Repeater. **Merge** into any existing `mcpServers` object rather than overwriting it:
-
-   ```json
-   {
-     "mcpServers": {
-       "brightsec": {
-         "url": "https://${BRIGHT_HOSTNAME}/mcp",
-         "headers": {
-           "Authorization": "Api-Key ${BRIGHT_TOKEN}"
-         }
-       }
-     }
-   }
-   ```
-
-   `type` can be omitted for a remote server (as shown); `type: "http"` is also accepted. Use plain
-   `${VAR}` references, not the `${env:VAR}` prefix.
-4. **Verify** — run `/mcp` to see the `brightsec` server status and its tools, and `/context show`
-   (or type `/`) to confirm the ten skills loaded. The CLI hot-reloads the MCP config on save.
-
-Path note: these are the documented defaults. Kiro resolves agents, skills, settings, and sessions
-against `~/.kiro`, and honors `KIRO_HOME` when it is set — verify the exact paths with `/mcp` and
-`/context show` in your Kiro CLI version. Two upstream caveats worth knowing: `KIRO_HOME`
-consistency mid-session is still being settled, and a custom `--agent` profile may not auto-discover
-`~/.kiro/skills` the way the default agent does — this power ships skills, so the default agent sees
-all ten.
+Kiro" install. Bright Security is **not yet** published there, so install from a local folder or
+the GitHub repo for now (the repo can be submitted to the registry via `kiro.dev/powers/submit`).
 
 ---
 
@@ -198,56 +145,24 @@ The bundled `kiro/mcp.json` keeps `${BRIGHT_HOSTNAME}` / `${BRIGHT_TOKEN}` as re
 every other package in this repo. The Agent Plugins spec (§7.2.1) says a strictly conformant client
 MUST NOT expand placeholders or environment variables in a server `url` or in header names/values —
 so a strict non-Kiro client would send the literal `${BRIGHT_TOKEN}` and be rejected. This power
-works on Kiro by design: Kiro resolves the references through its own MCP management (IDE), or you
-wire the native config that Kiro expands from the environment (CLI, step B.3). This is an
-intentional, Kiro-specific tradeoff, called out here rather than hidden.
+works on Kiro by design: Kiro expands the references from the environment when the managed MCP
+server connects. This is an intentional, Kiro-specific tradeoff, called out here rather than hidden.
 
 ---
 
-## Advanced / Update / Uninstall
+## Update / Uninstall
 
-- **IDE:** manage or remove the power from the Powers panel; Kiro also manages the bundled MCP
-  server's lifecycle for you.
-- **CLI update:** `git pull` the repo, then re-copy the ten Bright skill directories over their
-  previous versions (`cp -R kiro/skills/* ~/.kiro/skills/` is safe here — those ten names are the
-  power's own, already installed), or rely on symlinks for live updates. The MCP config is a
-  one-time edit.
-- **CLI uninstall:** remove **only** the entries this power installed, then delete the `brightsec`
-  entry from `~/.kiro/settings/mcp.json`. If the preflight above reported a conflict for a name,
-  that directory is yours — the install either refused to copy or left it untouched in the symlink
-  fallback — so uninstall must leave it. Drive the loop so it removes a name only when it is a
-  symlink resolving into this clone's `kiro/skills/` tree (the selective fallback), and otherwise
-  only after confirming the directory is this power's, not a same-named skill you own:
-
-  ```bash
-  cd bright-ai-plugins   # the clone whose kiro/skills defines the ten names
-  clone="$PWD"
-  for d in kiro/skills/*/; do
-    name=$(basename "$d")
-    target="$HOME/.kiro/skills/$name"
-    [ -e "$target" ] || [ -L "$target" ] || continue
-    if [ -L "$target" ]; then
-      # Symlink: remove only if it points into THIS clone's kiro/skills (installed by the fallback).
-      if [ "$(readlink "$target")" = "$clone/kiro/skills/$name" ]; then
-        rm "$target"
-      else
-        echo "Leaving ~/.kiro/skills/$name — not a symlink into this clone"
-      fi
-    else
-      # Real directory from the collision-safe copy: the preflight guaranteed none pre-existed,
-      # so all copied names are this power's. If you reused the name later, remove it by hand instead.
-      rm -rf "$target"
-    fi
-  done
-  ```
-
-  Then remove the `brightsec` key from the `mcpServers` object in `~/.kiro/settings/mcp.json`
-  (leave any other servers in place). If you installed into a workspace `.kiro/skills/` instead,
-  run the loop against that directory.
+- **CLI update:** `git pull` in the clone, then reinstall over the current copy —
+  `kiro-cli powers install ./bright-ai-plugins/kiro`.
+- **CLI uninstall:** `kiro-cli powers uninstall bright-security`. This removes the power from
+  `~/.kiro/powers/installed/` and `installed.json`; the bundled MCP server goes with it, so there
+  is no separate MCP config to clean up.
+- **IDE:** manage, update, or remove the power from the Powers panel; Kiro also manages the bundled
+  MCP server's lifecycle for you.
 - **Troubleshooting:** confirm `echo $BRIGHT_HOSTNAME` and `echo $BRIGHT_TOKEN` are set before
-  launching; `/mcp` shows the connection status; an auth failure shows up as a connection failure
-  for that server (rotate the token and restart). If only the Repeater fails, test the Bright CLI
-  directly:
+  launching Kiro. In a CLI chat, `/mcp` shows the `brightsec` connection status and its tools; an
+  auth failure shows up as a connection failure for that server (rotate the token and restart). If
+  only the Repeater fails, test the Bright CLI directly:
 
   ```bash
   npx @brightsec/cli repeater --id <REPEATER_ID> --hostname "$BRIGHT_HOSTNAME" --token "$BRIGHT_TOKEN"
@@ -257,15 +172,25 @@ intentional, Kiro-specific tradeoff, called out here rather than hidden.
 
 ## Verification status
 
-The install flow above is documented from Kiro's own docs and corroborating setup guides, not yet
-confirmed on a running Kiro instance. These specific points still need a live acceptance pass before
-they become guarantees rather than documented expectations:
+Verified live on **Kiro CLI 2.32.0** (macOS, arm64):
 
-- importing the power from the `kiro/` subdirectory of a GitHub repo in the Powers panel;
-- the approved-environment-variables prompt and how it propagates to the managed MCP server;
-- skill/workflow activation by keyword and from the `/` menu;
-- the end-to-end MCP connection to Bright;
-- the exact namespaced server name Kiro assigns to the managed `brightsec` server.
+- `kiro-cli powers install ./kiro` installs the power (`Installed power "bright-security"`), landing
+  all ten skills + `mcp.json` under `~/.kiro/powers/installed/bright-security/` and recording it in
+  `installed.json`;
+- the agent sees all ten skills by name;
+- the bundled `brightsec` MCP server connects and responds — a `listProjects` call returned live
+  Bright projects using `BRIGHT_HOSTNAME` / `BRIGHT_TOKEN` from the environment, with no manual MCP
+  config step;
+- `kiro-cli powers install` rejects a GitHub URL / `owner/repo` reference — only a catalog name or
+  local path is accepted (hence the clone-then-path flow above);
+- `kiro-cli powers uninstall bright-security` removes it cleanly.
+
+Not yet confirmed on a running instance (documented from Kiro's docs, pending a live pass):
+
+- the IDE Powers-panel import from the `kiro/` subdirectory and its approved-environment-variables
+  prompt;
+- the exact namespaced server name Kiro assigns to the managed `brightsec` server;
+- installation by catalog name (requires registry acceptance first).
 
 The portable schema conformance (both manifests), the `streamable-http` transport value, the name
 `bright-security`, the version `0.2.0`, and the byte-for-byte identity of the ten skill bodies with
