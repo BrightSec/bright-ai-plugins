@@ -30,7 +30,7 @@ export BRIGHT_TOKEN="your-bright-api-token"  # your Bright API token
 **2. Install the plugin** (this adds the agents and skills):
 
 ```bash
-copilot plugin marketplace add NeuraLegion/bright-ai-plugins
+copilot plugin marketplace add BrightSec/bright-ai-plugins
 copilot plugin install bright-security@brightsec
 ```
 
@@ -82,7 +82,7 @@ commit, or CI. `BRIGHT_HOSTNAME` / `BRIGHT_TOKEN` still need to be exported, and
 MCP server (step 3 above) once.
 
 ```bash
-git clone https://github.com/NeuraLegion/bright-ai-plugins
+git clone https://github.com/BrightSec/bright-ai-plugins
 copilot --plugin-dir /path/to/bright-ai-plugins/github-copilot --agent bright-security:bright-application-testing -i "Scan this app"
 ```
 

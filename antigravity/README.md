@@ -31,9 +31,9 @@ export BRIGHT_TOKEN="your-bright-api-token"  # your Bright API token
 subpath, or a local directory:
 
 ```bash
-agy plugin install https://github.com/NeuraLegion/bright-ai-plugins/tree/main/antigravity
+agy plugin install https://github.com/BrightSec/bright-ai-plugins/tree/main/antigravity
 # or, from a clone:
-# git clone https://github.com/NeuraLegion/bright-ai-plugins.git
+# git clone https://github.com/BrightSec/bright-ai-plugins.git
 # agy plugin install ./bright-ai-plugins/antigravity
 ```
 

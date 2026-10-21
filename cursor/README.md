@@ -44,7 +44,7 @@ the CLI. Add the marketplace source (once), then install from **Customize**:
 
 ```bash
 # Add the marketplace source (CLI can add a marketplace, but not install a plugin)
-cursor-agent plugin marketplace add https://github.com/NeuraLegion/bright-ai-plugins
+cursor-agent plugin marketplace add https://github.com/BrightSec/bright-ai-plugins
 ```
 
 Then in desktop Cursor open **Customize → Plugins**, find **Bright Security** under the `brightsec`
@@ -82,7 +82,7 @@ Load the plugin straight from a clone — handy for trying it out, pinning a com
 `BRIGHT_HOSTNAME` and `BRIGHT_TOKEN` still need to be in the environment.
 
 ```bash
-git clone https://github.com/NeuraLegion/bright-ai-plugins
+git clone https://github.com/BrightSec/bright-ai-plugins
 ```
 
 **Option A — CLI, single session.** The `--plugin-dir` flag loads a local plugin directory for one
