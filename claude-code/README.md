@@ -38,7 +38,7 @@ stop with a clear message if one is missing; the token is never requested in the
 **2. Install the plugin** from the marketplace:
 
 ```bash
-claude plugin marketplace add NeuraLegion/bright-ai-plugins
+claude plugin marketplace add BrightSec/bright-ai-plugins
 claude plugin install bright-security@brightsec
 ```
 
@@ -110,7 +110,7 @@ pinning a specific commit, or air-gapped setups. `BRIGHT_HOSTNAME` and `BRIGHT_T
 be exported.
 
 ```bash
-git clone https://github.com/NeuraLegion/bright-ai-plugins
+git clone https://github.com/BrightSec/bright-ai-plugins
 ```
 
 **Option A — drop into a project (native `--agent` support).** Copy the components into your

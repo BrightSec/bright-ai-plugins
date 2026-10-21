@@ -17,7 +17,7 @@
     "discovery"
   ],
   "homepage": "https://docs.brightsec.com",
-  "repository": "https://github.com/NeuraLegion/bright-ai-plugins",
+  "repository": "https://github.com/BrightSec/bright-ai-plugins",
   "logo": "assets/logo.svg",
   "agents": "agents",
   "skills": "skills",

@@ -27,7 +27,7 @@ source ~/.zshrc
 **2. Install the plugin** (this adds the skills):
 
 ```bash
-codex plugin marketplace add NeuraLegion/bright-ai-plugins
+codex plugin marketplace add BrightSec/bright-ai-plugins
 codex plugin add bright-security@brightsec
 ```
 
@@ -92,7 +92,7 @@ To run from a checkout instead of GitHub — for trying it out, pinning a commit
 setups — add the repo as a local marketplace, then install as usual:
 
 ```bash
-git clone https://github.com/NeuraLegion/bright-ai-plugins
+git clone https://github.com/BrightSec/bright-ai-plugins
 codex plugin marketplace add ./bright-ai-plugins   # local path
 codex plugin add bright-security@brightsec
 ```
