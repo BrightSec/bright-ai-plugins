@@ -37,7 +37,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
-PACKAGES = ["antigravity", "claude-code", "codex", "cursor", "github-copilot"]
+PACKAGES = ["antigravity", "claude-code", "codex", "cursor", "github-copilot", "kiro"]
 
 SHARED_SKILLS = [
     "analyze-codebase",
@@ -59,6 +59,7 @@ AGENT_VARIANTS = [
     "codex/skills/{agent}/SKILL.md",
     "github-copilot/agents/{agent}.agent.md",
     "github-copilot/.github/agents/{agent}.md",
+    "kiro/skills/{agent}/SKILL.md",
 ]
 
 
@@ -134,6 +135,7 @@ PLUGIN_MANIFESTS = [
     "codex/.codex-plugin/plugin.json",
     "github-copilot/plugin.json",
     "antigravity/plugin.json",
+    "kiro/plugin.json",
 ]
 
 MARKETPLACES = [

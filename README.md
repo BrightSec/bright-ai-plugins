@@ -2,7 +2,7 @@
 
 Bright Security DAST agents and skills, installable the **native way** into every major AI
 coding tool from this single repository: Cursor, Claude Code, Codex, GitHub Copilot,
-and Antigravity CLI.
+Antigravity CLI, and Kiro.
 
 Every package wires the **same three agents** and **seven skills** to the Bright MCP server:
 
@@ -29,9 +29,12 @@ README:
 - **Codex** — [`codex/`](./codex/)
 - **GitHub Copilot** — [`github-copilot/`](./github-copilot/)
 - **Antigravity CLI** — [`antigravity/`](./antigravity/)
+- **Kiro** — [`kiro/`](./kiro/)
 
-The `claude-code/` package is the canonical source the others mirror. Codex and Antigravity have no
-separate agent type, so their three orchestration workflows ship as skills.
+The `claude-code/` package is the canonical source the others mirror. Codex, Antigravity, and Kiro
+have no separate agent type, so their three orchestration workflows ship as skills (for Kiro,
+because the Agent Plugins format it uses has no portable agent component — only skills and MCP
+servers).
 
 Marketplace manifests live at the repo root — `.cursor-plugin/marketplace.json`,
 `.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json`,
